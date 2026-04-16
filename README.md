@@ -1,116 +1,156 @@
-# OMX CLI Default Skill
+# Codex x OMX Bridge
 
-A standalone Codex skill that enforces OMX CLI-first execution.
+Let Codex do more than code generation.
+Let it automatically switch to OMX workflows when task complexity requires stronger execution control.
 
-## 中文说明
+## What this project does
 
-### 这是什么
+This skill addresses a practical gap in desktop Codex usage:
+complex engineering tasks often outgrow direct single-thread conversational execution.
 
-`omx-cli-default` 是一个用于 Codex 桌面工作流的策略型 skill。它把“任务怎么跑”标准化为可复用的执行规则：中大型任务优先走 OMX，新项目启动先做 OMX 引导，再进入任务执行。
+Once work involves multi-file changes, cross-module refactors, long command chains,
+stable state handling, or orchestrated CLI execution,
+Codex can still continue, but execution stability and throughput are not always optimal.
 
-### 应用场景
+`Codex x OMX Bridge` introduces a routing layer:
 
-- 个人开发者需要稳定、可重复的任务执行节奏（尤其是多步骤任务）。
-- 团队协作场景下，希望任务路由规则一致，降低成员风格差异。
-- 需要频繁做调试、重构、代码审查、验证（测试/lint/typecheck）等中大型工作。
-- 希望新项目开工时自动完成 OMX 初始化，避免“每次重新配环境”。
+- You describe the task in natural language.
+- Codex evaluates task complexity.
+- Complex tasks are upgraded to OMX CLI workflows automatically.
+- Results are returned through the same Codex interface.
 
-### 实现方式
+Users keep one interaction surface.
+They do not need to manually switch tools or learn OMX commands first.
 
-- 任务分级门禁（Task Size Gate）：根据步骤数、是否改文件、是否需要验证、是否需要并行来判断任务规模。
-- 新项目引导门禁（Bootstrap Gate）：进入新项目后，先执行 `omx init`，不支持时回退到 `omx deepinit .` 或 `omx agents-init .`。
-- 命令路由策略：
-  - `omx explore` 用于快速只读检索
-  - `omx exec` 用于单线执行
-  - `omx team` 用于并行实施
-  - `omx resume --last` 用于恢复上下文
-- 环境兼容回退：`omx` 不在 PATH 时自动切换 `npx omx`。
+## Why this exists
 
-### 实用价值
+Codex is excellent as a coding agent.
+OMX is stronger for longer, stateful, orchestrated execution paths.
 
-- 提升一致性：不同任务、不同项目使用同一执行范式。
-- 提升效率：减少“怎么执行”上的临时决策成本。
-- 提升可靠性：把诊断、回退、恢复路径预先固化。
-- 提升可维护性：规则集中在 skill 中，便于版本化迭代。
+The real friction is not capability, but switching cost:
+most users do not know when to move from Codex-first to OMX-first execution,
+and even when they do, the handoff is manual and expensive.
 
-### 快速开始
+This skill is not replacing Codex.
+It is not repackaging OMX.
+It is an execution-mode router.
 
-```bash
-omx setup --scope user
-cd <project-root>
-omx init
-```
+## Core value proposition
 
-`omx init` 不可用时：
+### 1. Automatic complexity routing
 
-```bash
-omx deepinit .
-# or
-omx agents-init .
-```
+Users do not need to decide whether to use OMX in advance.
+The skill evaluates signals such as:
 
-若 `omx` 不在 PATH：
+- repository/work scope size,
+- multi-file or multi-module coupling,
+- multi-step execution chains,
+- need for CLI orchestration,
+- need for stronger state continuity.
 
-```bash
-npx omx <command>
-```
+### 2. Expert workflow as default behavior
+
+Experienced users already do this mentally:
+small tasks go direct, larger tasks get planned and orchestrated.
+
+This skill turns that implicit strategy into explicit, reusable product behavior.
+
+### 3. Preserve Codex as the only user-facing entry
+
+Users still talk only to Codex.
+OMX runs in the background when needed.
+No workflow fragmentation.
+
+### 4. Built for real engineering tasks
+
+Especially useful for:
+
+- medium/large codebase transformations,
+- coordinated multi-file edits,
+- scan-before-execute tasks,
+- tasks that combine testing/fixing/documentation,
+- tasks requiring stable CLI execution chains.
+
+## What this is not
+
+This is not a new coding agent.
+This is not a thin OMX launcher script.
+
+It is an agent runtime selector / execution mode router:
+
+- does not replace Codex,
+- does not rebuild OMX,
+- chooses the right execution paradigm for the current task.
+
+## One-line summary
+
+The value is not "Codex can launch OMX".
+The value is "Codex can automatically choose a better execution mode when complexity increases".
 
 ---
 
-## English Guide
+## 中文版（产品首页说明）
 
-### What this is
+### 它是做什么的
 
-`omx-cli-default` is a policy-oriented skill for Codex desktop workflows. It standardizes task execution by enforcing OMX-first routing for medium/large tasks and requiring OMX bootstrap when entering a new project.
+这个 skill 解决的是 Codex 桌面端的执行断层问题：
+当任务进入多文件改动、跨模块重构、长链路执行、状态保持或 CLI 编排阶段时，
+继续用单轮对话直接推进并不总是最优。
 
-### Application scenarios
+这个项目给 Codex 增加了一层执行模式路由能力：
 
-- Solo developers who need repeatable execution patterns across multi-step tasks.
-- Team workflows that need consistent routing rules across contributors.
-- Engineering tasks with debugging, refactoring, review, or validation phases.
-- New-project onboarding where OMX initialization should happen up front.
+- 用户仍然用自然语言提需求；
+- Codex 自动判断任务复杂度；
+- 复杂任务自动切到 OMX 执行；
+- 结果再统一回流到 Codex 展示。
 
-### How it works
+### 为什么要做这个
 
-- Task Size Gate: classifies work by step count, file edits, verification needs, and coordination complexity.
-- Bootstrap Gate: runs `omx init` on project start, with compatibility fallback to `omx deepinit .` or `omx agents-init .`.
-- Routing model:
-  - `omx explore` for fast read-only discovery
-  - `omx exec` for single-lane execution
-  - `omx team` for coordinated parallel implementation
-  - `omx resume --last` for context continuity
-- Environment fallback: switches to `npx omx` when `omx` is not on PATH.
+真正的问题不是“能不能做”，而是“什么时候该切换执行范式”。
+这个切换如果靠用户手动完成，成本高且不稳定。
 
-### Practical value
+这个 skill 把切换动作产品化：
 
-- Consistency: one execution model across projects.
-- Efficiency: less decision overhead before doing real work.
-- Reliability: built-in diagnostics and fallback paths.
-- Maintainability: centralized, versioned workflow rules.
+- 简单任务：Codex 直跑；
+- 复杂任务：自动升级 OMX；
+- 用户始终只有一个对话入口。
 
-### Quick start
+### 核心价值
 
-```bash
-omx setup --scope user
-cd <project-root>
-omx init
-```
+1. 自动判断，不要求用户手动切工具。
+2. 把高手工作流（先判断复杂度再执行）变成默认能力。
+3. 保留 Codex 自然语言入口，不增加工具心智负担。
+4. 面向真实工程任务而非演示级任务。
 
-Fallback when `omx init` is unavailable:
+### 最适合谁
 
-```bash
-omx deepinit .
-# or
-omx agents-init .
-```
+- 已经在用 Codex，但经常处理复杂项目的人。
+- 对 OMX 感兴趣，但不希望每次手动接管 CLI 的人。
 
-If `omx` is not on PATH:
+### 一句话总结
 
-```bash
-npx omx <command>
-```
+这个 skill 补上的不是能力空白，而是工作流切换的断层。
 
-## Repository layout
+---
 
-- `skills/omx-cli-default/SKILL.md`: executable skill contract
-- `skills/omx-cli-default/README.md`: operational bilingual guide
+## English opener for GitHub profile usage
+
+Codex x OMX Bridge helps Codex choose execution mode instead of only generating code.
+Small tasks stay conversational.
+Complex tasks are automatically upgraded to OMX orchestration.
+One natural-language interface, better execution for real engineering work.
+
+## Human pitch (30-second)
+
+Codex is great at coding, and OMX is great at orchestrating heavier workflows.
+Most people lose time on the handoff between the two.
+This project removes that handoff.
+It lets Codex detect when a task becomes complex and automatically route execution to OMX,
+while users continue talking to a single interface.
+So the user experience stays simple, but execution gets significantly stronger.
+
+## Quick links
+
+- Skill contract: [`skills/omx-cli-default/SKILL.md`](./skills/omx-cli-default/SKILL.md)
+- Operational guide: [`skills/omx-cli-default/README.md`](./skills/omx-cli-default/README.md)
+- Pitch-only version: [`PITCH.md`](./PITCH.md)

@@ -1,34 +1,35 @@
-# OMX CLI Default - Bilingual Operational Guide
+# OMX CLI Default - Operational Guide (CN + EN)
 
 ## 中文说明
 
-### 适用场景
+### 应用场景
 
-- 任务包含多个阶段：检索、修改、验证、回归检查。
-- 任务需要跨文件改动或需要稳定的执行节奏。
-- 任务存在协作需求，需要可预测的并行处理方式。
-- 新项目开工，需要先完成 OMX 初始化再执行任务。
+- 多步骤任务（检索、修改、验证、回归）
+- 多文件或跨模块联动改造
+- 需要稳定 CLI 链路和状态保持
+- 需要并行执行与更明确的任务编排
 
-### 规则实现（执行决策树）
+### 实现方式
 
-1. 判断任务规模。
+1. 任务分级（Task Size Gate）
 
-满足任一条件即判定为中大型任务（强制 OMX）：
-- 需要 2 步及以上的实质性操作。
-- 需要修改代码或配置文件。
-- 需要验证（测试、lint、typecheck、诊断）。
-- 涉及调试、重构、审查或并行协调。
+满足任一条件即触发 OMX：
 
-2. 新项目启动门禁。
+- 两步及以上的实质操作
+- 涉及代码/配置文件修改
+- 需要测试/lint/typecheck/诊断
+- 涉及调试、重构、评审或并行协作
 
-优先执行：
+2. 新项目门禁（Bootstrap Gate）
+
+优先：
 
 ```bash
 cd <project-root>
 omx init
 ```
 
-若 `init` 不可用：
+兼容回退：
 
 ```bash
 omx deepinit .
@@ -36,7 +37,7 @@ omx deepinit .
 omx agents-init .
 ```
 
-3. 执行路由。
+3. 路由策略
 
 ```bash
 omx explore --prompt "<lookup>"
@@ -45,15 +46,11 @@ omx team N:executor "<parallel implementation task>"
 omx resume --last
 ```
 
-4. 环境回退。
+4. PATH 回退
 
-`omx` 不在 PATH 时使用：
+`omx` 不在 PATH 时使用 `npx omx <command>`。
 
-```bash
-npx omx <command>
-```
-
-5. 恢复与诊断。
+5. 恢复策略
 
 ```bash
 omx doctor
@@ -62,33 +59,34 @@ omx setup --scope user --force
 
 ### 实用价值
 
-- 把“执行流程”从个人习惯升级为可复用策略。
-- 减少临时判断，提升交付速度和稳定性。
-- 在跨项目迁移时保持一致的认知与操作模型。
-- 降低新项目起步成本，减少初始化遗漏。
+- 一致性：跨任务、跨项目统一执行范式
+- 稳定性：复杂任务获得更强编排与状态管理
+- 效率：减少用户手动切换工具的决策成本
+- 可维护性：策略固化到 skill，便于版本化演进
 
 ---
 
 ## English Guide
 
-### Use cases
+### Typical use cases
 
-- Work that spans discovery, edits, validation, and follow-up checks.
-- Tasks that modify multiple files or require predictable execution cadence.
-- Collaboration-heavy tasks that benefit from structured parallel lanes.
-- New-project onboarding where OMX bootstrap should happen first.
+- Multi-step tasks with discovery, edit, validation, and follow-up
+- Cross-file or cross-module changes
+- Work requiring stable CLI chains and persistent execution state
+- Coordination-heavy implementation that benefits from parallel lanes
 
-### Implementation model (decision tree)
+### Execution model
 
-1. Classify task size.
+1. Task Size Gate
 
-A task is medium/large (OMX-mandatory) if any applies:
-- Two or more meaningful execution steps.
-- Code or config changes are required.
-- Verification is required (tests, lint, typecheck, diagnostics).
-- Debugging, refactoring, review, or coordination is required.
+OMX becomes mandatory when any condition applies:
 
-2. Enforce new-project bootstrap.
+- 2+ meaningful steps
+- code/config edits
+- verification (tests/lint/typecheck/diagnostics)
+- debugging/refactoring/review/coordination
+
+2. Bootstrap Gate
 
 Preferred:
 
@@ -105,7 +103,7 @@ omx deepinit .
 omx agents-init .
 ```
 
-3. Route execution.
+3. Routing
 
 ```bash
 omx explore --prompt "<lookup>"
@@ -114,11 +112,11 @@ omx team N:executor "<parallel implementation task>"
 omx resume --last
 ```
 
-4. Apply environment fallback.
+4. PATH fallback
 
-Use `npx omx` when `omx` is not on PATH.
+Use `npx omx <command>` when `omx` is not available on PATH.
 
-5. Recover and diagnose.
+5. Recovery
 
 ```bash
 omx doctor
@@ -127,7 +125,7 @@ omx setup --scope user --force
 
 ### Practical value
 
-- Converts execution behavior from personal habit into reusable policy.
-- Reduces decision overhead before implementation.
-- Preserves consistency across projects and contributors.
-- Lowers startup friction for new repositories.
+- Consistent execution mode across projects
+- Stronger reliability on complex engineering tasks
+- Lower switching overhead for users
+- Better maintainability through versioned workflow policy
