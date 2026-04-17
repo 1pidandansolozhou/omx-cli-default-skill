@@ -1,54 +1,56 @@
 ---
 name: omx-cli-default
-description: Enforce OMX CLI-first execution for user-directed work. Use when the user wants OMX-driven execution, when tasks are medium/large multi-step work, when a new project session starts, or when one-time Codex config injection via `omx setup --scope user` or `omx setup --scope project` is needed.
+description: Run Codex tasks with OMX using adaptive task-cluster routing and an idempotent return close-loop. Keeps prompts concise and avoids duplicate loop work.
 ---
 
 # OMX CLI Default
 
 ## Objective
 
-Run user-directed work through OMX CLI by default.
-Treat medium/large tasks as OMX-mandatory.
-Trigger OMX bootstrap on every new project start.
+Align Codex and OMX with a low-token closed loop:
+
+`route -> execute -> handoff-check -> close-loop(if missing)`
 
 ## Hard Rules
 
-1. Medium/large tasks must use OMX.
-2. New project start must run OMX bootstrap before task execution.
-3. Tiny one-step tasks may run directly only when OMX overhead is unnecessary.
+1. Use task-cluster routing instead of always forcing full OMX flow.
+2. Never duplicate close-loop when OMX already returned fresh artifacts.
+3. If OMX did not return feedback artifacts, Codex must patch the gap and finish the loop.
+4. Keep user-facing reporting short: command, owner, evidence, next action.
 
-## Task Size Gate
+## Task Cluster Routing
 
-Treat a task as medium/large (OMX mandatory) if any condition is true:
+- `tiny`: one-step lookup/command, no edits, no verification.
+  - Run directly in Codex.
+  - Skip OMX and skip feedback loop.
+- `standard`: light multi-step work, small edits, basic checks.
+  - Run `omx exec` (or `omx resume --last`).
+  - Use handoff-check; only补闭环 when OMX didn't return artifacts.
+- `complex`: debugging/refactor/review/parallel work.
+  - Run `omx team` / `omx exec`.
+  - Closed-loop required (OMX returns or Codex补齐).
 
-- Requires 2 or more meaningful steps.
-- Changes code or config files.
-- Requires verification (tests, lint, typecheck, diagnostics).
-- Requires investigation/debugging/refactoring/review.
-- Requires parallel lanes or coordination.
+Auto routing uses lightweight keyword heuristics to reduce token overhead.
 
-Treat a task as tiny only when all are true:
+## OMX Return Handoff Contract
 
-- Single-step, no file edits, no multi-command workflow.
-- No branching decisions or dependency checks.
-- No validation phase required.
+Fresh artifacts mean OMX already closed the loop for this run:
 
-## Command Resolution
+- `.omx/state/skill-feedback/latest-feedback.json`
+- `.omx/plans/omx-next-run-brief.md`
 
-Use `omx` when available on PATH.
-Use `npx omx` when `omx` is unavailable on PATH.
-Keep arguments identical after substitution.
+If both are newer than run start timestamp, Codex should only summarize and continue the main task. Do not re-run evaluation/close-loop.
 
-## New Project Bootstrap Gate
+## Bootstrap Gate (when needed)
 
-Before running substantive work in a new project:
+For new projects before substantive execution:
 
 ```bash
 cd <project-root>
 omx init
 ```
 
-If `omx init` is unavailable in the installed version:
+If `omx init` is unavailable:
 
 ```bash
 cd <project-root>
@@ -62,33 +64,28 @@ cd <project-root>
 omx agents-init .
 ```
 
-Then continue task execution via OMX commands.
-
-## OMX Command Routing
-
-- Read-only fast lookup:
+## One-Shot Wrapper (recommended)
 
 ```bash
-omx explore --prompt "<lookup>"
+~/.codex/skills/omx-cli-default/scripts/omx_run_with_feedback.sh \
+  --goal "<current-goal>" \
+  --cluster auto \
+  --omx "omx exec \"<task>\"" \
+  --report "<report_json_path>"
 ```
 
-- Single-lane execution:
+Legacy mode is still supported:
 
 ```bash
-omx exec "<task>"
+~/.codex/skills/omx-cli-default/scripts/omx_run_with_feedback.sh \
+  "<omx_cmd>" "<report_json_path>" "<goal>"
 ```
 
-- Coordinated parallel execution for larger implementation lanes:
+## Required Artifacts (for standard/complex loop)
 
-```bash
-omx team N:executor "<task>"
-```
-
-- Continue prior OMX context when appropriate:
-
-```bash
-omx resume --last
-```
+- `.omx/state/skill-feedback/latest-feedback.json`
+- `.omx/state/skill-feedback/omx-cli-default.json`
+- `.omx/plans/omx-next-run-brief.md`
 
 ## Setup Policy
 
@@ -120,15 +117,16 @@ omx setup --scope user --force
 
 ## Execution Behavior
 
-- Treat user instruction as source of truth.
-- Translate instruction into OMX CLI commands and execute directly.
-- Do not ask for confirmation on obvious reversible steps.
-- Keep going until verified complete or hard blocked.
+- Codex remains the owner of final delivery quality.
+- OMX executes routed tasks; Codex checks return artifacts and only补缺失闭环.
+- If OMX already produced closed-loop artifacts, Codex should not redo them.
+- If blocked, still persist blocker feedback and next-run brief.
 
 ## Output Contract
 
 Always report:
 
 1. OMX commands executed.
-2. Key result and verification evidence.
-3. Blocker and next OMX action if incomplete.
+2. Loop owner for this run (`omx` or `codex`).
+3. Verification evidence and/or blocker.
+4. Feedback grade (if loop ran) and next-run brief path.
