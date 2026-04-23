@@ -17,6 +17,8 @@ Align Codex and OMX with a low-token closed loop:
 2. Never duplicate close-loop when OMX already returned fresh artifacts.
 3. If OMX did not return feedback artifacts, Codex must patch the gap and finish the loop.
 4. Keep user-facing reporting short: command, owner, evidence, next action.
+5. Tiny routing should be conservative (avoid false `tiny` on edit/debug tasks).
+6. Even when OMX command fails, still persist blocker feedback and next-run brief.
 
 ## Task Cluster Routing
 
@@ -31,6 +33,26 @@ Align Codex and OMX with a low-token closed loop:
   - Closed-loop required (OMX returns or Codex补齐).
 
 Auto routing uses lightweight keyword heuristics to reduce token overhead.
+Heuristics are intentionally conservative: ambiguous requests default to `standard`.
+
+### Routing Floor (optional)
+
+For “默认尽量走 OMX” behavior:
+
+```bash
+export OMX_MIN_CLUSTER=standard
+```
+
+Or per-run:
+
+```bash
+~/.codex/skills/omx-cli-default/scripts/omx_run_with_feedback.sh \
+  --goal "<current-goal>" \
+  --cluster auto \
+  --prefer-standard \
+  --omx "omx exec \"<task>\"" \
+  --report "<report_json_path>"
+```
 
 ## OMX Return Handoff Contract
 
@@ -40,6 +62,7 @@ Fresh artifacts mean OMX already closed the loop for this run:
 - `.omx/plans/omx-next-run-brief.md`
 
 If both are newer than run start timestamp, Codex should only summarize and continue the main task. Do not re-run evaluation/close-loop.
+Artifacts are considered reusable only when present, non-empty, and fresh for this run.
 
 ## Bootstrap Gate (when needed)
 
@@ -70,6 +93,7 @@ omx agents-init .
 ~/.codex/skills/omx-cli-default/scripts/omx_run_with_feedback.sh \
   --goal "<current-goal>" \
   --cluster auto \
+  --prefer-standard \
   --omx "omx exec \"<task>\"" \
   --report "<report_json_path>"
 ```
@@ -121,6 +145,7 @@ omx setup --scope user --force
 - OMX executes routed tasks; Codex checks return artifacts and only补缺失闭环.
 - If OMX already produced closed-loop artifacts, Codex should not redo them.
 - If blocked, still persist blocker feedback and next-run brief.
+- OMX command failure does not terminate silently; Codex emits blocker feedback and closes loop.
 
 ## Output Contract
 
